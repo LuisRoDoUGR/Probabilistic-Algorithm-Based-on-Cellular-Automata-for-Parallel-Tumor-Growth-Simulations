@@ -1,0 +1,5 @@
+ct: 
+	g++ -std=c++11 *.cpp -o BIN/ct
+	
+clean:
+	rm -f BIN/*
