@@ -184,8 +184,6 @@ void simulacion_cancer(vector <Coordenadas> &matriz, vector< vector <Celula> > &
 
 
 int main(){
-
-	cout << "Hello World" << endl;
 	
 	vector <Coordenadas> matriz(LONG*LONG);
 	Coordenadas coor;
