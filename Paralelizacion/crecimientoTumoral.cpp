@@ -3,13 +3,43 @@
 #include "random.hpp"
 
 using namespace std;
+using Random = effolkronium::random_static;
 
 struct Celula {
 	bool cancer = false;
-	float cct;
-	float ro;
-	float mu;
+	int cct;
+	int ro;
+	int mu;
 	float alpha;
+	Celula (bool c, int cc, int r, int m, float a){
+		cancer = c;
+		cct = cc;
+		ro = r;
+		mu = m;
+		alpha = a;
+	}
+	
+	Celula (const Celula &cell){
+		cancer = cell.cancer;
+		cct = cell.cct;
+		ro = cell.ro;
+		mu = cell.mu;
+		alpha = cell.alpha;
+	}
+	
+	Celula (){
+		cancer = false;
+	}
+	
+	Celula& operator=( const Celula* cell){
+		cancer = cell->cancer;
+		cct = cell->cct;
+		ro = cell->ro;
+		mu = cell->mu;
+		alpha = cell->alpha;
+		return *this;
+	}
+	
 };
 
 struct Coordenadas{
@@ -35,8 +65,8 @@ static int ROMAX = 10;
 static float ALPHAMAX = 0.01;
 
 static int LONG = 201;
-/*
-void introducir_en_casilla( int i, int j, int casilla, Celula celula){
+
+void introducir_en_casilla( int i, int j, int casilla, Celula celula, vector< vector <Celula> > &rejilla){
 	if (casilla == 0)
         	rejilla[i - 1][j - 1] = celula;
     	else if (casilla == 1)
@@ -55,29 +85,105 @@ void introducir_en_casilla( int i, int j, int casilla, Celula celula){
         	rejilla[i - 1][j] = celula;
 }
 
-vector<int> casillas_libres( int i, int j){
+vector<int> casillas_libres( int i, int j, vector< vector <Celula> > &rejilla){
 	vector<int> libres;
 	
-	if ( i-1 >= 0 && j-1 >= 0 && i-1 < LONG && j-1 < LONG && !( type(rejilla[i-1][j-1]) == Celula) )
+	if ( i-1 >= 0 && j-1 >= 0 && i-1 < LONG && j-1 < LONG && !rejilla[i-1][j-1].cancer )
        	libres.push_back(0);
-	if ( i >= 0 && j-1 >= 0 && i < LONG && j-1 < LONG && !( type(rejilla[i][j-1]) == Celula) )
+	if ( i >= 0 && j-1 >= 0 && i < LONG && j-1 < LONG && !rejilla[i-1][j-1].cancer )
        	libres.push_back(1);
-	if ( i+1 >= 0 && j-1 >= 0 && i+1 < LONG && j-1 < LONG && !( type(rejilla[i+1][j-1]) == Celula) )
+	if ( i+1 >= 0 && j-1 >= 0 && i+1 < LONG && j-1 < LONG && !rejilla[i-1][j-1].cancer )
        	libres.push_back(2);
-	if ( i+1 >= 0 && j >= 0 && i+1 < LONG && j < LONG && !( type(rejilla[i+1][j]) == Celula) )
+	if ( i+1 >= 0 && j >= 0 && i+1 < LONG && j < LONG && !rejilla[i-1][j-1].cancer )
        	libres.push_back(3);
-	if ( i+1 >= 0 && j+1 >= 0 && i+1 < LONG && j+1 < LONG && !( type(rejilla[i+1][j+1]) == Celula) )
+	if ( i+1 >= 0 && j+1 >= 0 && i+1 < LONG && j+1 < LONG && !rejilla[i-1][j-1].cancer )
        	libres.push_back(4);
-	if ( i >= 0 && j+1 >= 0 && i < LONG && j+1 < LONG && !( type(rejilla[i][j+1]) == Celula) )
+	if ( i >= 0 && j+1 >= 0 && i < LONG && j+1 < LONG && !rejilla[i-1][j-1].cancer )
        	libres.push_back(5);
-	if ( i-1 >= 0 && j+1 >= 0 && i-1 < LONG && j+1 < LONG && !( type(rejilla[i-1][j+1]) == Celula) )
-       	libres.append(6);
-	if ( i-1 >= 0 && j >= 0 && i-1 < LONG && j < LONG && !( type(rejilla[i-1][j]) == Celula) )
+	if ( i-1 >= 0 && j+1 >= 0 && i-1 < LONG && j+1 < LONG && !rejilla[i-1][j-1].cancer )
+       	libres.push_back(6);
+	if ( i-1 >= 0 && j >= 0 && i-1 < LONG && j < LONG && !rejilla[i-1][j-1].cancer )
        	libres.push_back(7);
 	
 	return libres;
 }
-*/
+
+int accion_cell(float alpha, float migrar, float pd){
+	float p_total = alpha + migrar + pd;
+	float p_obtenida = Random::get(0.0f, p_total);
+	
+	if( p_obtenida < alpha ){
+		return 1;
+	} else if(p_obtenida < (alpha + migrar) ){
+		return 2;
+	} else 
+		return 3;
+	
+}
+
+
+void simulacion_cancer(vector <Coordenadas> &matriz, vector< vector <Celula> > &rejilla){
+	Coordenadas casilla_elegida;
+	int i, j, action;
+	Celula cell, nueva_cell;
+	vector<int> cas_libres;
+	float alpha, pd, migrar, p_obtenida;
+
+	for( int a = 0; a < 51; a++){
+		Random::shuffle(matriz);
+		for( int indice = 0; indice < LONG*LONG; indice++){
+			casilla_elegida = matriz[indice];
+			i = casilla_elegida.x;
+			j = casilla_elegida.y;
+			cell = rejilla[i][j];
+			
+			if( cell.cancer ){
+				cas_libres = casillas_libres( i, j, rejilla );
+				
+				if( cas_libres.size() > 0 ){
+					alpha = cell.alpha;
+					pd = (24.0/cell.cct)*T; //Operaciones enteras
+					migrar = (1-pd)*(cell.mu*T);
+					
+					if( cell.ro == 0)
+						pd = 0;
+						
+					action = accion_cell(alpha, migrar, pd);
+					
+					if( action == 1 ){
+						rejilla[i][j] = new Celula();
+					}else if( action == 2 ){
+						Random::shuffle(cas_libres);
+						
+						nueva_cell = new Celula(cell);
+						
+						rejilla[i][j] = new Celula();
+						
+						introducir_en_casilla( i, j, cas_libres[0], nueva_cell, rejilla);
+					
+					}else if( action == 3 ){
+						Random::shuffle(cas_libres);
+						
+						if( cell.alpha == 0 ){
+							p_obtenida = Random::get(0.0, 1.0);
+							if( p_obtenida < PS ){
+								introducir_en_casilla( i, j, cas_libres[0], cell, rejilla);
+							}else{
+								nueva_cell = new Celula(true, cell.cct, ROMAX, cell.mu, ALPHAMAX);
+								introducir_en_casilla( i, j, cas_libres[0], nueva_cell, rejilla);
+							}
+						} else {
+							cell.ro = cell.ro-1;
+							introducir_en_casilla( i, j, cas_libres[0], cell, rejilla);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+
 int main(){
 
 	cout << "Hello World" << endl;
@@ -111,14 +217,11 @@ int main(){
 		cout << "Sana" << endl;
 	*/
 		
-	Celula cell;
-	cell.cancer = true;
-	cell.cct = 24;
-	cell.ro = 100000000000;
-	cell.mu = 100;
-	cell.alpha = 0;
+	Celula cell(true, 24 , 1000000000, 100, 0);
 	
-	rejilla[(long - 1)/2][(long - 1)/2] = cell;
+	rejilla[(LONG - 1)/2][(LONG - 1)/2] = cell;
+	
+	simulacion_cancer(matriz, rejilla);
 	
 	return 0;
 }
