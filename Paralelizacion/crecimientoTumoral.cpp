@@ -1,8 +1,10 @@
 #include <iostream>
 #include <vector>
+#include <chrono>
 #include "random.hpp"
 
 using namespace std;
+using namespace std::chrono;
 using Random = effolkronium::random_static;
 
 struct Celula {
@@ -217,8 +219,19 @@ int main(){
 	Celula cell(true, 24.0 , 1000000000.0 , 100.0, 0.0);
 	
 	rejilla[(LONG - 1)/2][(LONG - 1)/2] = cell;
-		
+	
+	auto start = high_resolution_clock::now(); //Declaramos los valores que vamos a usar para el calculo de tiempo
+	auto stop = high_resolution_clock::now();
+	auto duration = duration_cast<microseconds>(stop - start);
+	int tiempo = 0;
+	
+	start = high_resolution_clock::now();
 	simulacion_cancer(matriz, rejilla);
+	stop = high_resolution_clock::now();
+	duration = duration_cast<microseconds>(stop - start);
+	tiempo = duration.count();
+	
+	cout << "Tiempo: " << tiempo << endl;
 	
 	return 0;
 }
