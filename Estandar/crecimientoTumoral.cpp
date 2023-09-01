@@ -192,7 +192,7 @@ int accion_cell(double alpha, double migrar, double pd){
 	@param matriz: Vector con todas las posibles coordenadas que tiene el grid
 	@param rejilla: Grid de células donde se va a simular el crecimiento del tumor
 */
-void simulacion_cancer(vector <Coordenadas> &matriz, vector <Coordenadas> &futuras, vector< vector <Celula> > &rejilla){
+int simulacion_cancer(vector <Coordenadas> &matriz, vector <Coordenadas> &futuras, vector< vector <Celula> > &rejilla){
 	// Declaración de variables auxiliares
 	Coordenadas casilla_elegida;
 	int i, j, action, contador_cells = 1, pasos = 24;
@@ -202,6 +202,11 @@ void simulacion_cancer(vector <Coordenadas> &matriz, vector <Coordenadas> &futur
 	ofstream myfile;
 	string file;
 	vector <Coordenadas>::iterator it;
+	
+	auto new_extra = high_resolution_clock::now(); //Declaramos los valores que vamos a usar para el calculo de tiempo
+	auto fin_extra = high_resolution_clock::now();
+	auto extra = duration_cast<chrono::milliseconds>(fin_extra - fin_extra);
+	int time = 0;
 
 	//Durante 50 días
 	for( int dia = 1; dia < 51; dia++){
@@ -281,7 +286,7 @@ void simulacion_cancer(vector <Coordenadas> &matriz, vector <Coordenadas> &futur
 			}
 			matriz.assign(futuras.begin(), it);
 		}
-				
+		new_extra = high_resolution_clock::now();		
 		//Cada día indicamos cuantas células hay
 		cout << "Día: " << dia << endl;
 		cout << "Numero de celulas: "<< contador_cells << endl;
@@ -302,7 +307,12 @@ void simulacion_cancer(vector <Coordenadas> &matriz, vector <Coordenadas> &futur
 	    			myfile.close();
 	  		} else cout << "Unable to open file";
 	  	}
+	  	
+	  	fin_extra = high_resolution_clock::now();
+	  	extra = duration_cast<milliseconds>(fin_extra - new_extra);
+		time += extra.count();
 	}
+	return time;
 }
 
 
@@ -345,14 +355,14 @@ int main(){
 	//Simulamos el grid cálculando el tiempo que tarda
 	auto start = high_resolution_clock::now(); //Declaramos los valores que vamos a usar para el calculo de tiempo
 	auto stop = high_resolution_clock::now();
-	auto duration = duration_cast<microseconds>(stop - start);
+	auto duration = duration_cast<milliseconds>(stop - start);
 	int tiempo = 0;
 	
 	start = high_resolution_clock::now();
-	simulacion_cancer(matriz, futuras, rejilla);
+	tiempo -= simulacion_cancer(matriz, futuras, rejilla);
 	stop = high_resolution_clock::now();
-	duration = duration_cast<microseconds>(stop - start);
-	tiempo = duration.count();
+	duration = duration_cast<milliseconds>(stop - start);
+	tiempo += duration.count();
 	
 	cout << "Tiempo: " << tiempo << endl;
 	
