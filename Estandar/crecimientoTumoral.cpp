@@ -1,7 +1,8 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <vector>
 #include <chrono>
-#include <omp.h>
 #include "random.hpp"
 
 using namespace std;
@@ -60,6 +61,12 @@ struct Celula {
 struct Coordenadas{
 	int x;
 	int y;
+	
+	Coordenadas& operator=( const Coordenadas* coor){
+		x = coor->x;
+		y = coor->y;
+		return *this;
+	}
 };
 
 //Probabilidad de reproducción identica o normal
@@ -84,24 +91,49 @@ static int LONG = 201;
 	@param celula: Nueva celula que se va a introducir en el grid
 	@param rejilla: Grid de células que se está simulando
 */
-void introducir_en_casilla( int i, int j, int casilla, Celula celula, vector< vector <Celula> > &rejilla){
+Coordenadas introducir_en_casilla( int i, int j, int casilla, Celula celula, vector< vector <Celula> > &rejilla){
+	Coordenadas coor;
 	//Se comprueba cúal de los posibles 8 casillas es la que se ha pasado, y se introduce la célula en las coordenadas correspondientes
-	if (casilla == 0)
+	if (casilla == 0){
         	rejilla[i - 1][j - 1] = celula;
-    	else if (casilla == 1)
+        	coor.x = i-1;
+        	coor.y = j-1;
+    	}else if (casilla == 1){
         	rejilla[i][j - 1] = celula;
-    	else if (casilla == 2)
+        	coor.x = i;
+        	coor.y = j-1;
+    	}
+    	else if (casilla == 2){
         	rejilla[i + 1][j - 1] = celula;
-    	else if (casilla == 3)
+        	coor.x = i+1;
+        	coor.y = j-1;
+    	}
+    	else if (casilla == 3){
         	rejilla[i + 1][j] = celula;
-    	else if (casilla == 4)
+        	coor.x = i+1;
+        	coor.y = j;
+    	}
+    	else if (casilla == 4){
         	rejilla[i + 1][j + 1] = celula;
-    	else if (casilla == 5)
+        	coor.x = i+1;
+        	coor.y = j+1;
+    	}
+    	else if (casilla == 5){
         	rejilla[i][j + 1] = celula;
-    	else if (casilla == 6)
+        	coor.x = i;
+        	coor.y = j+1;
+    	}
+    	else if (casilla == 6){
         	rejilla[i - 1][j + 1] = celula;
-    	else if (casilla == 7)
+        	coor.x = i-1;
+        	coor.y = j+1;
+    	}
+    	else if (casilla == 7){
         	rejilla[i - 1][j] = celula;
+        	coor.x = i-1;
+        	coor.y = j;
+    	}
+    	return coor;
 }
 
 /* Cálcula cuales de las 8 casillas adyacentes a una dada están libres, es decir, sin células cancerigenas.
@@ -114,21 +146,21 @@ vector<int> casillas_libres( int i, int j, vector< vector <Celula> > &rejilla){
 	vector<int> libres(0); //Vector donde se guardan las posiciones
 	//Desde la esquina superior izquierda, recorriendo las 8 posiciones circundantes en sentido horario, se comprueba que no hay células cancerígenas.
 	if ( i-1 >= 0 && j-1 >= 0 && i-1 < LONG && j-1 < LONG && !rejilla[i-1][j-1].cancer )
-       	libres.push_back(0);
+       		libres.push_back(0);
 	if ( i >= 0 && j-1 >= 0 && i < LONG && j-1 < LONG && !rejilla[i][j-1].cancer )
-       	libres.push_back(1);
+       		libres.push_back(1);
 	if ( i+1 >= 0 && j-1 >= 0 && i+1 < LONG && j-1 < LONG && !rejilla[i+1][j-1].cancer )
-       	libres.push_back(2);
+       		libres.push_back(2);
 	if ( i+1 >= 0 && j >= 0 && i+1 < LONG && j < LONG && !rejilla[i+1][j].cancer )
-       	libres.push_back(3);
+       		libres.push_back(3);
 	if ( i+1 >= 0 && j+1 >= 0 && i+1 < LONG && j+1 < LONG && !rejilla[i+1][j+1].cancer )
-       	libres.push_back(4);
+       		libres.push_back(4);
 	if ( i >= 0 && j+1 >= 0 && i < LONG && j+1 < LONG && !rejilla[i][j+1].cancer )
-       	libres.push_back(5);
+       		libres.push_back(5);
 	if ( i-1 >= 0 && j+1 >= 0 && i-1 < LONG && j+1 < LONG && !rejilla[i-1][j+1].cancer )
-       	libres.push_back(6);
+       		libres.push_back(6);
 	if ( i-1 >= 0 && j >= 0 && i-1 < LONG && j < LONG && !rejilla[i-1][j].cancer )
-       	libres.push_back(7);
+       		libres.push_back(7);
 	
 	return libres;
 }
@@ -150,37 +182,43 @@ int accion_cell(double alpha, double migrar, double pd){
 		return 1;
 	} else if(p_obtenida < (alpha + migrar) ){
 		return 2;
-	} else {
+	} else if(p_obtenida < p_total ){
 		return 3;
 	}
+	return 4;
 }
 
 /* Simulación durante 50 días, con 24 pasos por día del crecimiento de un tumor en un grid.
 	@param matriz: Vector con todas las posibles coordenadas que tiene el grid
 	@param rejilla: Grid de células donde se va a simular el crecimiento del tumor
 */
-void simulacion_cancer(vector <Coordenadas> &matriz, vector< vector <Celula> > &rejilla){
+void simulacion_cancer(vector <Coordenadas> &matriz, vector <Coordenadas> &futuras, vector< vector <Celula> > &rejilla){
 	// Declaración de variables auxiliares
 	Coordenadas casilla_elegida;
 	int i, j, action, contador_cells = 1, pasos = 24;
 	Celula cell, nueva_cell;
 	vector<int> cas_libres;
 	double alpha, pd, migrar, p_obtenida;
+	ofstream myfile;
+	string file;
+	vector <Coordenadas>::iterator it;
 
 	//Durante 50 días
-	for( int dia = 0; dia < 51; dia++){
+	for( int dia = 1; dia < 51; dia++){
 		//En cada día 24 pasos
 		for (int paso = 0; paso < pasos; paso++){
 			//Aleatorizamos el acceso al grid
 			Random::shuffle(matriz);
+			it = futuras.begin();
 			//Para el número de elementos del grid
-			for( int indice = 0; indice < LONG*LONG; indice++){
+			for( int indice = 0; indice < matriz.size(); indice++){
 				//Vemos que casilla vamos a acceder
 				casilla_elegida = matriz[indice];
 				i = casilla_elegida.x; //Guardamos las coordenadas
 				j = casilla_elegida.y;
 				cell = rejilla[i][j]; //Y guardamos la célula en esa coordenada
 				
+				//Innecesario
 				if( cell.cancer ){ //Si la célula es cancerígena
 					cas_libres = casillas_libres( i, j, rejilla ); //Cálculamos las casillas libres alrededor
 					
@@ -189,9 +227,9 @@ void simulacion_cancer(vector <Coordenadas> &matriz, vector< vector <Celula> > &
 						alpha = cell.alpha;	
 						pd = (24.0/cell.cct)*T; 
 						migrar = (1-pd)*(cell.mu*T);
-						if( cell.ro <= 0)
+						if( cell.ro <= 0){
 							pd = 0;
-							
+						}
 						//Se escoge qué acción va a hacer la célula
 						action = accion_cell(alpha, migrar, pd);
 						
@@ -205,7 +243,10 @@ void simulacion_cancer(vector <Coordenadas> &matriz, vector< vector <Celula> > &
 							
 							rejilla[i][j] = new Celula(); //Eliminamos la célula del lugar actual en el que está
 							
-							introducir_en_casilla( i, j, cas_libres[0], nueva_cell, rejilla); //Introducimos la copia en la casilla adyacente	
+							(*it) = introducir_en_casilla( i, j, cas_libres[0], nueva_cell, rejilla); //Introducimos la copia en la casilla adyacente
+							it ++;
+							
+								
 						}else if( action == 3 ){ // Si se reproduce
 							Random::shuffle(cas_libres); //Aleatorizamos el acceso a las casilla adyacentes
 							
@@ -213,35 +254,64 @@ void simulacion_cancer(vector <Coordenadas> &matriz, vector< vector <Celula> > &
 								p_obtenida = Random::get(0.0, 1.0); //Cálculamos si sera copia exacta o hija
 								if( p_obtenida < PS ){ //Si es copia exacta
 									nueva_cell = new Celula(cell); //Hacemos la copia
-									introducir_en_casilla( i, j, cas_libres[0], nueva_cell, rejilla); //Introducimos la copia al lado
+									(*it) = introducir_en_casilla( i, j, cas_libres[0], nueva_cell, rejilla); //Introducimos la copia al lado
+									it ++;
+									
 								}else{ //Si es hija
 									nueva_cell = new Celula(true, cell.cct, ROMAX, cell.mu, ALPHAMAX); //Creamos una hija con nuevos parametros
-									introducir_en_casilla( i, j, cas_libres[0], nueva_cell, rejilla); //Introducimos la hija al lado
+									(*it) = introducir_en_casilla( i, j, cas_libres[0], nueva_cell, rejilla); //Introducimos la hija al lado
+									it ++;
 								}
 							} else { //Si no es célula madre
 								// ESTO ESTÁ ASÍ EN EL ORIGINAL Y NO SE SI DEBERÍA ESTAR AL REVES
 								cell.ro = cell.ro-1; //Reducimos el número de reproducciones de la célula
 								nueva_cell = new Celula(cell); //Hacemos una copia
-								introducir_en_casilla( i, j, cas_libres[0], nueva_cell, rejilla); //Introducimos la hija al lado
+								(*it) = introducir_en_casilla( i, j, cas_libres[0], nueva_cell, rejilla); //Introducimos la hija al lado
+								it ++;
+								
 							}
+							(*it) = casilla_elegida;
+							it ++;
+							
 							contador_cells ++; //Aumentamos el número de células
 						}
 					}
+					
 				}
 			}
+			matriz.assign(futuras.begin(), it);
 		}
+				
 		//Cada día indicamos cuantas células hay
 		cout << "Día: " << dia << endl;
 		cout << "Numero de celulas: "<< contador_cells << endl;
+		
+		if (dia % 5 == 0){
+			
+			file = "TABLES/" + to_string(dia) + "dia.txt";
+						
+			myfile.open( file );
+	  		if (myfile.is_open()){
+	  			myfile << LONG << "\n";
+	  			for( int filas = 0; filas < rejilla.size(); filas++ ){
+	  				for ( int columnas = 0; columnas < rejilla[filas].size(); columnas++){
+		  				if( rejilla[filas][columnas].cancer )
+			  				myfile << filas << " " << columnas << "\n";
+		  			}
+	  			}
+	    			myfile.close();
+	  		} else cout << "Unable to open file";
+	  	}
 	}
 }
 
 
 int main(){
 	//Inicializamos el vector con las coordenadas
-	vector <Coordenadas> matriz(LONG*LONG);
+	vector <Coordenadas> matriz; // (LONG*LONG);
+	vector <Coordenadas> futuras(LONG*LONG);
 	Coordenadas coor;
-		
+	/*	
 	for( int i = 0; i < LONG; i++ ){
 		coor.x = i;
 		coor.y = i;
@@ -254,7 +324,7 @@ int main(){
 			coor.y = i;
 			matriz[j*LONG + i] = coor;
 		}
-	}	
+	}*/
 	//for ( int i = 0; i < matriz.size(); i++)
 	//	cout <<"("<< matriz[i].x << "," << matriz[i].y << ")-\t";
 	
@@ -268,6 +338,10 @@ int main(){
 	
 	rejilla[(LONG - 1)/2][(LONG - 1)/2] = cell;
 	
+	coor.x = (LONG - 1)/2;
+	coor.y = (LONG - 1)/2;
+	matriz.push_back(coor);
+	
 	//Simulamos el grid cálculando el tiempo que tarda
 	auto start = high_resolution_clock::now(); //Declaramos los valores que vamos a usar para el calculo de tiempo
 	auto stop = high_resolution_clock::now();
@@ -275,7 +349,7 @@ int main(){
 	int tiempo = 0;
 	
 	start = high_resolution_clock::now();
-	simulacion_cancer(matriz, rejilla);
+	simulacion_cancer(matriz, futuras, rejilla);
 	stop = high_resolution_clock::now();
 	duration = duration_cast<microseconds>(stop - start);
 	tiempo = duration.count();
