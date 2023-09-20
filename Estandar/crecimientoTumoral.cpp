@@ -57,7 +57,7 @@ struct Celula {
 	
 };
 
-//Clase de Coordenadas, par de interos, para representar coordenadas de un vector
+//Clase de Coordenadas, par de interos, para representar coordenadas de una matriz
 struct Coordenadas{
 	int x;
 	int y;
@@ -80,7 +80,9 @@ static double ROMAX = 10.0;
 static double ALPHAMAX = 0.01;
 
 //Tamaño del grid
-static int LONG = 201;
+static int LONG = 601;
+//Nº de días
+static int NUM_DIAS = 121;
 
 /* Introduce el valor de la celula, en el sitio correspondiente, alrededor de las coordenadas que se pasan
 	como parametro. Al final de la función, hay una nueva celula en una casilla adyacente a las coordenadas
@@ -209,7 +211,7 @@ int simulacion_cancer(vector <Coordenadas> &matriz, vector <Coordenadas> &futura
 	int time = 0;
 
 	//Durante 50 días
-	for( int dia = 1; dia < 51; dia++){
+	for( int dia = 1; dia < NUM_DIAS; dia++){
 		//En cada día 24 pasos
 		for (int paso = 0; paso < pasos; paso++){
 			//Aleatorizamos el acceso al grid
@@ -289,7 +291,7 @@ int simulacion_cancer(vector <Coordenadas> &matriz, vector <Coordenadas> &futura
 		new_extra = high_resolution_clock::now();		
 		//Cada día indicamos cuantas células hay
 		cout << "Día: " << dia << endl;
-		cout << "Numero de celulas: "<< contador_cells << endl;
+		cout << "Numero de celulas: "<< matriz.size() << endl;
 		
 		if (dia % 5 == 0){
 			
