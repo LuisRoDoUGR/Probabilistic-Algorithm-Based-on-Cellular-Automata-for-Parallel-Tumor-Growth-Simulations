@@ -20,14 +20,14 @@ struct Celula {
 	//Cálculo de migración
 	double cct;
 	//Nº de reproducciones
-	double ro;
+	int ro;
 	//Cálculo de Reproducción
 	double mu;
 	//Prababilidad de muerte
 	double alpha;
 	
 	//Constructor con parametros, para cada uno de ellos
-	Celula (bool c, double cc, double r, double m, double a){
+	Celula (bool c, double cc, int r, double m, double a){
 		cancer = c;
 		cct = cc;
 		ro = r;
@@ -66,6 +66,7 @@ struct Coordenadas{
 	int x;
 	int y;
 	
+	//Definición del operador de asignación, copia los valores x e y de la coordenada a la derecha del operador
 	Coordenadas& operator=( const Coordenadas* coor){
 		x = coor->x;
 		y = coor->y;
@@ -79,14 +80,14 @@ static double PS = 0.1;
 static double T = (1/24.0);
 
 //Nº máximo de reproducciones de una célula
-static double ROMAX = 10.0;
+static int ROMAX = 10;
 //Probabilidad máxima de muerte
 static double ALPHAMAX = 0.01;
 
 //Tamaño del grid
-static int LONG = 601;
+static int LONG = 751;
 //Nº de días
-static int NUM_DIAS = 121;
+static int NUM_DIAS = 171;
 
 /* Introduce el valor de la celula, en el sitio correspondiente, alrededor de las coordenadas que se pasan
 	como parametro. Al final de la función, hay una nueva celula en una casilla adyacente a las coordenadas
@@ -142,7 +143,7 @@ Coordenadas introducir_en_casilla( int i, int j, int casilla, Celula celula, vec
     	return coor;
 }
 
-/* Cálcula cuales de las 8 casillas adyacentes a una dada están libres, es decir, sin células cancerigenas.
+/* Calcula dada unas coordenadas cuales de las 8 casillas adyacentes están libres, es decir, sin células cancerigenas.
 	@param i: Valor x de las coordenadas de la casilla
 	@param j: Valor y de las coordenadas de la casilla
 	@param rejilla: Grid de células que se está simulando
@@ -151,60 +152,38 @@ Coordenadas introducir_en_casilla( int i, int j, int casilla, Celula celula, vec
 vector<int> casillas_libres( int i, int j, vector< vector <Celula> > &rejilla){
 	vector<int> libres(0); //Vector donde se guardan las posiciones
 	//Desde la esquina superior izquierda, recorriendo las 8 posiciones circundantes en sentido horario, se comprueba que no hay células cancerígenas.
-	if ( i-1 >= 0 && j-1 >= 0 && i-1 < LONG && j-1 < LONG && !rejilla[i-1][j-1].cancer )
+	if ( i-1 >= 0 && j-1 >= 0 && i-1 < LONG && j-1 < LONG && !(rejilla[i-1][j-1].cancer) )
        		libres.push_back(0);
-	if ( i >= 0 && j-1 >= 0 && i < LONG && j-1 < LONG && !rejilla[i][j-1].cancer )
+	if ( i >= 0 && j-1 >= 0 && i < LONG && j-1 < LONG && !(rejilla[i][j-1].cancer) )
        		libres.push_back(1);
-	if ( i+1 >= 0 && j-1 >= 0 && i+1 < LONG && j-1 < LONG && !rejilla[i+1][j-1].cancer )
+	if ( i+1 >= 0 && j-1 >= 0 && i+1 < LONG && j-1 < LONG && !(rejilla[i+1][j-1].cancer) )
        		libres.push_back(2);
-	if ( i+1 >= 0 && j >= 0 && i+1 < LONG && j < LONG && !rejilla[i+1][j].cancer )
+	if ( i+1 >= 0 && j >= 0 && i+1 < LONG && j < LONG && !(rejilla[i+1][j].cancer) )
        		libres.push_back(3);
-	if ( i+1 >= 0 && j+1 >= 0 && i+1 < LONG && j+1 < LONG && !rejilla[i+1][j+1].cancer )
+	if ( i+1 >= 0 && j+1 >= 0 && i+1 < LONG && j+1 < LONG && !(rejilla[i+1][j+1].cancer) )
        		libres.push_back(4);
-	if ( i >= 0 && j+1 >= 0 && i < LONG && j+1 < LONG && !rejilla[i][j+1].cancer )
+	if ( i >= 0 && j+1 >= 0 && i < LONG && j+1 < LONG && !(rejilla[i][j+1].cancer) )
        		libres.push_back(5);
-	if ( i-1 >= 0 && j+1 >= 0 && i-1 < LONG && j+1 < LONG && !rejilla[i-1][j+1].cancer )
+	if ( i-1 >= 0 && j+1 >= 0 && i-1 < LONG && j+1 < LONG && !(rejilla[i-1][j+1].cancer) )
        		libres.push_back(6);
-	if ( i-1 >= 0 && j >= 0 && i-1 < LONG && j < LONG && !rejilla[i-1][j].cancer )
+	if ( i-1 >= 0 && j >= 0 && i-1 < LONG && j < LONG && !(rejilla[i-1][j].cancer) )
        		libres.push_back(7);
 	
 	return libres;
 }
 
-/* Cálculo de la acción que toma una célula en una fase de tiempo, según las probabilidades que se le pasan
-	@param alpha: Probabilidad de morir
-	@param migrar: Probabilidad de migrar
-	@param pd: Probabilidad de reproducción
-	@return: Valor entero del 1 al 3, indicando una de las 3 posibles acciones que toma una célula
-*/
-int accion_cell(double alpha, double migrar, double pd){
-	//Se suman las probabilidades de cada acción
-	double p_total = alpha + migrar + pd;
-	//Se busca un número aleatorio entre 0 y las probabilidades sumadas
-	double p_obtenida = Random::get(0.0, p_total);
-	
-	//Dependiendo de el número obtenido se elige una de las opciones
-	if( p_obtenida < alpha ){
-		return 1;
-	} else if(p_obtenida < (alpha + migrar) ){
-		return 2;
-	} else if(p_obtenida < p_total ){
-		return 3;
-	}
-	return 4;
-}
-
 /* Simulación durante NUM_DIAS días, con 24 pasos por día del crecimiento de un tumor en un grid.
-	@param matriz: Vector con todas las posibles coordenadas que tiene el grid
+	@param matriz: Matriz divida en regiones, representadas como 3 filas, que recoge las coordenadas donde hay celulas cancerígenas
+	@param futuras: Matriz dividida en filas, representando las filas de la rejilla, donde se recogen las coordenadas de la siguiente iteración
 	@param rejilla: Grid de células donde se va a simular el crecimiento del tumor
 */
 int simulacion_cancer(vector < vector <Coordenadas> > &matriz, vector < vector <Coordenadas> > &futuras, vector< vector <Celula> > &rejilla){
 	// Declaración de variables auxiliares
 	Coordenadas casilla_elegida, aux;
-	int i, j, action, contador_cells = 1, pasos = 24, altura_max, altura_min, num_threads, tid, contador, tam_region = ( LONG + omp_get_max_threads() - 1) / omp_get_max_threads();
+	int i, j, contador_cells, pasos = 24, tid, indice_futuras, indice_libre, region_cambiada;
 	Celula cell, nueva_cell;
 	vector<int> cas_libres;
-	double alpha, pd, migrar, p_obtenida;
+	double alpha, pd, migrar, p_obtenida, p_total;
 	ofstream myfile;
 	string file;
 	vector < vector <Coordenadas>::iterator > vec_iteradores( LONG );
@@ -212,11 +191,14 @@ int simulacion_cancer(vector < vector <Coordenadas> > &matriz, vector < vector <
 	vector <int> distribucion(matriz.size());
 	vector <double> cel_procesadas(omp_get_max_threads());
 	
+	//La distribución inicial de los threads, empieza por 3 filas por thread, 1 por región, para todos los threads menos los extremos
 	for( int i = 1; i < (matriz.size()/3)-1; i++){
 		distribucion[3*i] = 1;
 		distribucion[3*i+1] = 1;
 		distribucion[3*i+2] = 1;
 	}
+	
+	//Los threads con los extremos del grid, empiezan con 2 filas, para el bot y top seam, y se reparten el resto de filas 
 	distribucion[0] = 1;
 	distribucion[1] = (LONG - matriz.size() + 2)/2;
 	distribucion[2] = 1;
@@ -225,151 +207,144 @@ int simulacion_cancer(vector < vector <Coordenadas> > &matriz, vector < vector <
 	distribucion[matriz.size()-2] = ( (LONG - matriz.size() + 2)/2 == 0) ? (LONG - matriz.size() + 2)/2 : (LONG - matriz.size() + 2)/2 + 1;
 	distribucion[matriz.size()-1] = 1;
 	
+	
 	auto new_extra = high_resolution_clock::now(); //Declaramos los valores que vamos a usar para el calculo de tiempo
 	auto fin_extra = high_resolution_clock::now();
 	auto extra = duration_cast<chrono::milliseconds>(fin_extra - fin_extra);
 	int time = 0;
 	
-	//Durante 50 días
+	//Durante NUM_DIAS días
 	for( int dia = 1; dia < NUM_DIAS; dia++){
 		//En cada día 24 pasos
 		for (int paso = 0; paso < pasos; paso++){
-			/*
-			altura_min = -1;
-			for( int altura = 0; altura < matriz.size(); altura++ ){
-				if( matriz[altura].size != 0 ){
-					altura_max = altura;
-				 	if ( altura_min == -1 )
-				 		altura_min = altura;
-				}
-			}
-			
-			num_threads = ( (altura_max - altura_min)/tam_franja ) + 1;
-			if ( num_threads <= omp_get_max_threads() ){
-				omp_set_num_threads ( num_threads );
-				altura_max++;
-				altura_min--;
-			} else {
-				omp_set_num_threads ( omp_get_max_threads() );
-			}*/
-			
-			#pragma omp parallel default( none ) shared( cel_procesadas, contador, cout, dia, paso, matriz, futuras, rejilla, contador_cells, pasos, altura_max, altura_min, num_threads, tam_region, myfile, file, new_extra, fin_extra, extra, time, vec_iteradores, T, PS, ALPHAMAX, ROMAX ) private(casilla_elegida, aux, i, j, action, tid, cell, nueva_cell, cas_libres, alpha, pd, migrar, p_obtenida)				
-			{ // ¿Estructura de datos para acceder a las franjas aleatoriamente? matriz de 3*12 filas? -> como hago futuras?
-				tid = omp_get_thread_num();
-				
-				//Aleatorizamos el acceso al grid
+						
+			#pragma omp parallel default( none ) shared( cel_procesadas, indice_futuras, cout, dia, paso, matriz, futuras, rejilla, contador_cells, pasos, myfile, file, new_extra, fin_extra, extra, time, vec_iteradores, T, PS, ALPHAMAX, ROMAX, pasar, distribucion ) private(region_cambiada, indice_libre, casilla_elegida, aux, i, j, tid, cell, nueva_cell, cas_libres, alpha, pd, migrar, p_obtenida, p_total)				
+			{ 
+				//Ponemos los iteradores al principio de los vectores de Futuras
 				#pragma omp for schedule (guided)
 				for( int index = 0; index < vec_iteradores.size(); index++){
 					vec_iteradores[index] = futuras[index].begin();
 				}
 				
+				//Cada thread guarda su ID
+				tid = omp_get_thread_num();
+				
+				//Se inicia a 0 el contador de celulas por thread
 				cel_procesadas[tid] = 0.0;
 				
+				//Para cada una de las regiones: Top seam, Center y Bot Seam
 				for( int regiones = 0; regiones < 3; regiones++ ){
-					Random::shuffle(matriz[ regiones + tid*3 ]);
-					
-					for( int indice = 0; indice < matriz[ regiones + tid*3 ].size(); indice++){
+					region_cambiada = (regiones + paso)%3;
+					//Aleatorizamos su acceso
+					Random::shuffle(matriz[ tid*3 + region_cambiada ]);
+					//Para cada elemento
+					for( int indice = 0; indice < matriz[ tid*3 + region_cambiada ].size(); indice++){
 						//Vemos que casilla vamos a acceder
-						casilla_elegida = matriz[ regiones + tid*3 ][indice];
+						casilla_elegida = matriz[ tid*3 + region_cambiada ][indice];
 						i = casilla_elegida.x; //Guardamos las coordenadas
 						j = casilla_elegida.y;
 						cell = rejilla[i][j]; //Y guardamos la célula en esa coordenada
-						cel_procesadas[tid] += 1.0;
-						//Innecesario
-						if( cell.cancer ){ //Si la célula es cancerígena
-							cas_libres = casillas_libres( i, j, rejilla ); //Cálculamos las casillas libres alrededor
+						cel_procesadas[tid] += 1.0; //Contamos las celulas procesadas por hilo
+						
+						cas_libres = casillas_libres( i, j, rejilla ); //Cálculamos las casillas libres alrededor
+						
+						if( cas_libres.size() > 0 ){ //Si tiene casillas libres alrededor
+							//Se cálcula las probabilidades de la célula de cada acción según sus parametros
+							alpha = cell.alpha;	
+							pd = (24.0/cell.cct)*T; 
+							migrar = (1-pd)*(cell.mu*T);
+							if( cell.ro <= 0){
+								pd = 0.0;
+							}
+							//Se escoge qué acción va a hacer la célula
+							p_total = alpha + migrar + pd;
+							p_obtenida = Random::get(0.0, p_total);
 							
-							if( cas_libres.size() > 0 ){ //Si tiene casillas libres alrededor
-								//Se cálcula las probabilidades de la célula de cada acción según sus parametros
-								alpha = cell.alpha;	
-								pd = (24.0/cell.cct)*T; 
-								migrar = (1-pd)*(cell.mu*T);
-								if( cell.ro <= 0){
-									pd = 0;
-								}
-								//Se escoge qué acción va a hacer la célula
-								action = accion_cell(alpha, migrar, pd);
+							if( p_obtenida < alpha ){ //Si muere
+								rejilla[i][j] = new Celula(); //Se reemplaza en el grid por una celula no cancerígena
+							
+							}else if( p_obtenida < (alpha + migrar) ){ //Si migra
+								indice_libre = Random::get( 0, int(cas_libres.size()-1)); //Aleatorizamos el acceso a las casilla adyacentes
 								
-								if( action == 1 ){ //Si muere
-									rejilla[i][j] = new Celula(); //Se reemplaza en el grid por una celula no cancerígena
-									//contador_cells --; //Disminuye el contador de células
-								}else if( action == 2 ){ //Si migra
-									Random::shuffle(cas_libres); //Aleatorizamos el acceso a las casilla adyacentes
+								nueva_cell = new Celula(cell); //Se genera una copia de la célula
+								
+								rejilla[i][j] = new Celula(); //Eliminamos la célula del lugar actual en el que está
+								
+								aux = introducir_en_casilla( i, j, cas_libres[indice_libre], nueva_cell, rejilla); //Introducimos la copia en la casilla adyacente
+								(*vec_iteradores[aux.x]) = aux; 
+								vec_iteradores[aux.x] ++;
+								
 									
-									nueva_cell = new Celula(cell); //Se genera una copia de la célula
-									
-									rejilla[i][j] = new Celula(); //Eliminamos la célula del lugar actual en el que está
-									
-									aux = introducir_en_casilla( i, j, cas_libres[0], nueva_cell, rejilla); //Introducimos la copia en la casilla adyacente
-									(*vec_iteradores[aux.x]) = aux; 
-									vec_iteradores[aux.x] ++;
-									
-										
-								}else if( action == 3 ){ // Si se reproduce
-									Random::shuffle(cas_libres); //Aleatorizamos el acceso a las casilla adyacentes
-									
-									if( cell.alpha == 0 ){ //Si no puede morir (Célula madre)
-										p_obtenida = Random::get(0.0, 1.0); //Cálculamos si sera copia exacta o hija
-										if( p_obtenida < PS ){ //Si es copia exacta
-											nueva_cell = new Celula(cell); //Hacemos la copia
-											aux = introducir_en_casilla( i, j, cas_libres[0], nueva_cell, rejilla); //Introducimos la copia al lado
-											(*vec_iteradores[aux.x]) = aux; 
-											vec_iteradores[aux.x] ++;
-											
-										}else{ //Si es hija
-											nueva_cell = new Celula(true, cell.cct, ROMAX, cell.mu, ALPHAMAX); //Creamos una hija con nuevos parametros
-											aux = introducir_en_casilla( i, j, cas_libres[0], nueva_cell, rejilla); //Introducimos la hija al lado
-											(*vec_iteradores[aux.x]) = aux; 
-											vec_iteradores[aux.x] ++;
-										}
-									} else { //Si no es célula madre
-										// ESTO ESTÁ ASÍ EN EL ORIGINAL Y NO SE SI DEBERÍA ESTAR AL REVES
-										cell.ro = cell.ro-1; //Reducimos el número de reproducciones de la célula
-										nueva_cell = new Celula(cell); //Hacemos una copia
-										aux = introducir_en_casilla( i, j, cas_libres[0], nueva_cell, rejilla); //Introducimos la hija al lado
+							}else{ // Si se reproduce
+								indice_libre = Random::get( 0, int(cas_libres.size()-1)); //Aleatorizamos el acceso a las casilla adyacentes
+								
+								if( cell.alpha == 0.0 ){ //Si no puede morir (Célula madre)
+									p_obtenida = Random::get(0.0, 1.0); //Cálculamos si sera copia exacta o hija
+									if( p_obtenida < PS ){ //Si es copia exacta
+										nueva_cell = new Celula(cell); //Hacemos la copia
+										aux = introducir_en_casilla( i, j, cas_libres[indice_libre], nueva_cell, rejilla); //Introducimos la copia al lado
 										(*vec_iteradores[aux.x]) = aux; 
 										vec_iteradores[aux.x] ++;
 										
+									}else{ //Si es hija
+										nueva_cell = new Celula(true, cell.cct, ROMAX, cell.mu, ALPHAMAX); //Creamos una hija con nuevos parametros
+										aux = introducir_en_casilla( i, j, cas_libres[indice_libre], nueva_cell, rejilla); //Introducimos la hija al lado
+										(*vec_iteradores[aux.x]) = aux; 
+										vec_iteradores[aux.x] ++;
 									}
-									(*vec_iteradores[i]) = casilla_elegida;
-									vec_iteradores[i] ++;
+								} else { //Si no es célula madre
+									// ESTO ESTÁ ASÍ EN EL ORIGINAL Y NO SE SI DEBERÍA ESTAR AL REVES
+									cell.ro = cell.ro-1; //Reducimos el número de reproducciones de la célula
+									nueva_cell = new Celula(cell); //Hacemos una copia
+									aux = introducir_en_casilla( i, j, cas_libres[indice_libre], nueva_cell, rejilla); //Introducimos la hija al lado
+									(*vec_iteradores[aux.x]) = aux; 
+									vec_iteradores[aux.x] ++;
 									
-									//contador_cells ++; //Aumentamos el número de células
 								}
+								(*vec_iteradores[i]) = casilla_elegida;
+								vec_iteradores[i] ++;
 							}
-							
+						} else {
+							(*vec_iteradores[i]) = casilla_elegida;
+							vec_iteradores[i] ++;
 						}
-					}
+					} //Todos los hilos esperan al resto para acabar la region
 					#pragma omp barrier
 				}
 			}
 			
 			pasar = false;
-			for( int aux = 0; aux < matriz.size()/3-1; aux++){
-				if(!pasar){
-					if( distribucion[3*aux+1] > 1 && cel_procesadas[aux]/cel_procesadas[aux+1] > 1.1 ){
-						distribucion[3*aux+1] --;
-						distribucion[3*(aux+1)+1] ++;
-						pasar = true;
-					} else if( distribucion[3*(aux+1)+1] > 1 && cel_procesadas[aux]/cel_procesadas[aux+1] < 0.9 ){
-						distribucion[3*(aux+1)+1] --;
-						distribucion[3*aux+1] ++;
+			//Para cada hilo menos el último
+			for( int hilo = 0; hilo < matriz.size()/3-1; hilo++){
+				if(!pasar){ //Si no hemos hecho un cambio antes
+					//Si el hilo actual tiene suficientes filas, y el hilo actual ha procesado más de un % más de células
+					if( distribucion[3*hilo+1] > 1 && cel_procesadas[hilo]/cel_procesadas[hilo+1] > 1.05 ){
+						//El hilo siguiente gana una fila para procesar, y el hilo actual la pierde
+						distribucion[3*hilo+1] --;
+						distribucion[3*(hilo+1)+1] ++;
+						pasar = true; //Se pasa la siguiente ronda
+					//Si el hilo siguiente tiene suficientes filas, y el hilo actual ha procesado más de un % menos de células
+					} else if( distribucion[3*(hilo+1)+1] > 1 && cel_procesadas[hilo]/cel_procesadas[hilo+1] < 0.95 ){
+						//El hilo siguiente pierde una fila para procesar, y el hilo actual la gana
+						distribucion[3*(hilo+1)+1] --;
+						distribucion[3*hilo+1] ++;
 						pasar = true;
 					}
-				} else
+				} else	//Si has pasado antes, no pasas la siguiente iteración
 					pasar = false;
 			}
 			
-			for( int limpiar = 0; limpiar < matriz.size(); limpiar ++){
-				matriz[limpiar].clear();
-			}
-			
-			contador = 0;
-			for( int adding = 0; adding < matriz.size(); adding ++){
-				for( int a = 0; a < distribucion[adding]; a++){
-					matriz[adding].insert(matriz[adding].end(), futuras[contador].begin(), vec_iteradores[contador]);
-					contador++;
+			indice_futuras = 0;
+			for( int indice_matriz = 0; indice_matriz < matriz.size()/3; indice_matriz ++){
+				matriz[3*indice_matriz].assign( futuras[indice_futuras].begin(), vec_iteradores[indice_futuras]);
+				indice_futuras ++;
+				matriz[3*indice_matriz + 1].clear();
+				for( int a = 0; a < distribucion[3*indice_matriz+1]; a++){
+					matriz[3*indice_matriz+1].insert(matriz[3*indice_matriz+1].end(), futuras[indice_futuras].begin(), vec_iteradores[indice_futuras]);
+					indice_futuras ++;
 				}
+				matriz[3*indice_matriz+2].assign( futuras[indice_futuras].begin(), vec_iteradores[indice_futuras]);
+				indice_futuras ++;
 			}
 			
 			
@@ -393,7 +368,7 @@ int simulacion_cancer(vector < vector <Coordenadas> > &matriz, vector < vector <
 	  			for( int filas = 0; filas < rejilla.size(); filas++ ){
 	  				for ( int columnas = 0; columnas < rejilla[filas].size(); columnas++){
 		  				if( rejilla[filas][columnas].cancer )
-			  				myfile << filas << " " << columnas << "\n";
+			  				myfile << filas << " " << columnas << " " << rejilla[filas][columnas].ro << "\n";
 		  			}
 	  			}
 	    			myfile.close();
@@ -404,9 +379,6 @@ int simulacion_cancer(vector < vector <Coordenadas> > &matriz, vector < vector <
 	  	extra = duration_cast<milliseconds>(fin_extra - new_extra);
 		time += extra.count();
 	}
-	for (int a = 0; a < distribucion.size()/3; a++){
-		cout << "Hilo " << a << " acaba con filas: " << distribucion[3*a] << " " << distribucion[3*a+1] << " " << distribucion[3*a+2] << endl;
-	}
 	return time;
 }
 
@@ -416,23 +388,7 @@ int main(){
 	vector < vector <Coordenadas> > matriz ( omp_get_max_threads()*3 ); // (LONG*LONG);
 	vector < vector <Coordenadas> > futuras( LONG );
 	Coordenadas coor;
-	/*	
-	for( int i = 0; i < LONG; i++ ){
-		coor.x = i;
-		coor.y = i;
-		matriz[i*LONG+i] = coor;
-		for( int j = i+1; j < LONG; j++){
-			coor.x = i;
-			coor.y = j;
-			matriz[i*LONG + j] = coor;
-			coor.x = j;
-			coor.y = i;
-			matriz[j*LONG + i] = coor;
-		}
-	}*/
-	//for ( int i = 0; i < matriz.size(); i++)
-	//	cout <<"("<< matriz[i].x << "," << matriz[i].y << ")-\t";
-	
+
 	// Inicializamos el grid de Células
 	vector < vector <Celula> > rejilla(LONG);
 	for( int i = 0; i < LONG; i++){
@@ -441,7 +397,7 @@ int main(){
 	}
 		
 	//Introducimos en la mitad del grid una célula madre	
-	Celula cell(true, 24.0 , 1000000000.0 , 100.0, 0.0);
+	Celula cell(true, 24.0 , 100 , 100.0, 0.0);
 	
 	rejilla[(LONG - 1)/2][(LONG - 1)/2] = cell;
 	

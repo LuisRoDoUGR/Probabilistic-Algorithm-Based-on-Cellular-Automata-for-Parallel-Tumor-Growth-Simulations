@@ -24,14 +24,14 @@ static double ALPHAMAX = 0.01;
 static int LONG = 751;
 //Nº de días
 static int NUM_DIAS = 11;
-
+//Vector con los valores de n!, para los numeros del 0 al 8
 static vector< int > FACTORIAL(9);
 
-
+//Clase que representan los elementos de la rejilla que usamos para simular el crecimiento tumoral
 class Celula {
 	
 	public:
-	//Indicar si es cancerigena o no
+	//Indica si es cancerigena o no
 	bool cancer = false;
 	//Cálculo de migración
 	double cct;
@@ -41,18 +41,23 @@ class Celula {
 	double mu;
 	//Prababilidad de muerte
 	double alpha;
-	//Numero de vecinos
+	//Numero de vecinos cancerigenos
 	int n_vecinos;
-	//Numero de vecinos
+	//Referencias a los vecinos cancerigenos o NULL en otro caso
 	Celula * vecinos[8];
 	
+	// Probabilidades de esta célula de morir, migrar o reproducirse respectivamente
 	double P_morir;
 	double P_migra;
-	double P_repro;
-	// HAY QUE INICIALIZAR ESTOS DOS EN ALGUN MOMENTO
+	double P_repro;	
 	
-	
-	//Constructor con parametros, para cada uno de ellos
+	/* Inicializa la célula con los valores que se le pasa por referencia, se establecen los vecinos a 0 y se calcula las probabilidades de morir, migrar o reproducirse
+	@param c: Booleano que indica si la célula es cancerígena
+	@param cc: Parametro usado para el calculo de la probabilidad de migración
+	@param r: Numero de reproducciones de la celula
+	@param m: Parametro usado para el cálculo de la probabilidad de reproducción
+	@param a: Parametro usado para el cálculo de la probabilidad de morir
+	*/
 	Celula (bool c, double cc, double r, double m, double a){
 		cancer = c;
 		cct = cc;
@@ -73,7 +78,9 @@ class Celula {
 		calculoProbabilidades();
 	}
 	
-	//Constructor copia, genera una instancia nueva con los mismos parametros
+	/* Inicializa la célula copiando los valores de la célula pasada como parámetro
+	@param cell: Célula de la que se va a hacer la copia
+	*/
 	Celula (const Celula &cell){
 		cancer = cell.cancer;
 		cct = cell.cct;
@@ -95,7 +102,8 @@ class Celula {
 		vecinos[7] = NULL;
 	}
 	
-	//Constructor por defecto, genera celula sin cancer, el resto de parametros sin inicializar
+	/* Inicializa la célula como no cancerígena y con todos los valores a 0
+	*/
 	Celula (){
 		cancer = false;
 		ro = 0.0;
@@ -134,7 +142,9 @@ class Celula {
 		vecinos[7] = NULL;
 		return *this;
 	}
-		
+	
+	/* Usa los valores de cct, mu y alpha para calcular las probabilidades de morir, migrar y reproducirse
+	*/	
 	void calculoProbabilidades(){
 		double pd = (24.0/cct)*T; 
 		double migrar = (1-pd)*(mu*T);
@@ -142,19 +152,20 @@ class Celula {
 		if( ro <= 0){
 			pd = 0.0;
 		}
-		//Se escoge qué acción va a hacer la célula
+		//Con la suma de los valores de pd, migrar y alpha se calculan las probabilidades de reproducirse, migrar y morir respectivamente
 		double p_total = alpha + migrar + pd;
 		P_morir = alpha/p_total;
 		P_migra = migrar/p_total;
 		P_repro = pd/p_total;
 	}
 	
+	/* Reduce el valor de ro en uno y, si ha llegado a 0, se recalculan las probabilidades
+	*/
 	void decreaseRo(){
 		ro --;
-		if(ro <= 0)
+		if(ro == 0)
 			calculoProbabilidades();
 	}
-
 	
 	/* Cálcula cuales de las 8 casillas adyacentes a una dada están libres, es decir, sin células cancerigenas.
 	@param i: Valor x de las coordenadas de la casilla
@@ -172,30 +183,29 @@ class Celula {
 		vecinos[5] = NULL;
 		vecinos[6] = NULL;
 		vecinos[7] = NULL;
-		 //Vector donde se guardan las posiciones
 		//Desde la esquina superior izquierda, recorriendo las 8 posiciones circundantes en sentido horario, se comprueba que no hay células cancerígenas.
 		if ( i-1 >= 0  && j-1 >= 0 && i-1 < LONG && j-1 < LONG && rejilla[i-1][j-1].cancer && rejilla[i-1][j-1].ro < 11 ){
 	       		vecinos[0] = &rejilla[i-1][j-1];
 	       		n_vecinos++;
-		}if ( i >= 0   && j-1 >= 0 && i < LONG   && j-1 < LONG && rejilla[i][j-1].cancer && rejilla[i-1][j-1].ro < 11 ){
+		}if ( i >= 0   && j-1 >= 0 && i < LONG   && j-1 < LONG && rejilla[i][j-1].cancer && rejilla[i][j-1].ro < 11 ){
 	       		vecinos[1] = &rejilla[i][j-1];
 	       		n_vecinos++;
-		}if ( i+1 >= 0 && j-1 >= 0 && i+1 < LONG && j-1 < LONG && rejilla[i+1][j-1].cancer && rejilla[i-1][j-1].ro < 11 ){
+		}if ( i+1 >= 0 && j-1 >= 0 && i+1 < LONG && j-1 < LONG && rejilla[i+1][j-1].cancer && rejilla[i+1][j-1].ro < 11 ){
 	       		vecinos[2] = &rejilla[i+1][j-1];
 	       		n_vecinos++;
-		}if ( i+1 >= 0 && j >= 0   && i+1 < LONG && j < LONG   && rejilla[i+1][j].cancer && rejilla[i-1][j-1].ro < 11 ){
+		}if ( i+1 >= 0 && j >= 0   && i+1 < LONG && j < LONG   && rejilla[i+1][j].cancer && rejilla[i+1][j].ro < 11 ){
 	       		vecinos[3] = &rejilla[i+1][j];
 	       		n_vecinos++;
-		}if ( i+1 >= 0 && j+1 >= 0 && i+1 < LONG && j+1 < LONG && rejilla[i+1][j+1].cancer && rejilla[i-1][j-1].ro < 11 ){
+		}if ( i+1 >= 0 && j+1 >= 0 && i+1 < LONG && j+1 < LONG && rejilla[i+1][j+1].cancer && rejilla[i+1][j+1].ro < 11 ){
 	       		vecinos[4] = &rejilla[i+1][j+1];
 	       		n_vecinos++;
-		}if ( i >= 0   && j+1 >= 0 && i < LONG   && j+1 < LONG && rejilla[i][j+1].cancer && rejilla[i-1][j-1].ro < 11 ){
+		}if ( i >= 0   && j+1 >= 0 && i < LONG   && j+1 < LONG && rejilla[i][j+1].cancer && rejilla[i][j+1].ro < 11 ){
 	       		vecinos[5] = &rejilla[i][j+1];
 	       		n_vecinos++;
-		}if ( i-1 >= 0 && j+1 >= 0 && i-1 < LONG && j+1 < LONG && rejilla[i-1][j+1].cancer && rejilla[i-1][j-1].ro < 11 ){
+		}if ( i-1 >= 0 && j+1 >= 0 && i-1 < LONG && j+1 < LONG && rejilla[i-1][j+1].cancer && rejilla[i-1][j+1].ro < 11 ){
 	       		vecinos[6] = &rejilla[i-1][j+1];
 	       		n_vecinos++;
-		}if ( i-1 >= 0 && j >= 0   && i-1 < LONG && j < LONG   && rejilla[i-1][j].cancer && rejilla[i-1][j-1].ro < 11 ){
+		}if ( i-1 >= 0 && j >= 0   && i-1 < LONG && j < LONG   && rejilla[i-1][j].cancer && rejilla[i-1][j].ro < 11 ){
 	       		vecinos[7] = &rejilla[i-1][j];
 	       		n_vecinos++;
 		}
@@ -223,6 +233,7 @@ struct Coordenadas{
 	@param casilla: Indicativo de en cuál de las 8 casillas adyacentes se ha de introducir la nueva célula, este valor debe ser válido
 	@param celula: Nueva celula que se va a introducir en el grid
 	@param rejilla: Grid de células que se está simulando
+	@return: Coordenadas donde se ha insertado la célula
 */
 Coordenadas introducir_en_casilla( int i, int j, int casilla, Celula celula, vector< vector <Celula> > &rejilla){
 	Coordenadas coor;
@@ -303,8 +314,14 @@ vector<int> casillas_libres( int i, int j, vector< vector <Celula> > &rejilla){
 	return libres;
 }
 
-
-
+/* Función que añade la probabilidad de que uno de los vecinos no ocurra, y se llama a si misma para añadir el resto de vecinos
+	@param elegido: Número del vecino que tiene probabilidad positiva
+	@param inicio: Número del vecino desde el que empezar a iterar
+	@param vecinos: Número total de vecinos
+	@param nivel: Número de elementos múltiplicados en este nivel
+	@probabilidad_v: Vector con las probabilidades de migrar y reproducirse de los vecinos
+	@return: Probabilidad de que los vecinos a partir del inicio, y sin contar el elegido, no migren ni se reproduzcan en una célula vecina
+*/
 double combinaciones(int elegido, int inicio, int vecinos, int nivel, vector< double > &probabilidad_v){
 	double p = 0;
 	for( int j = inicio; j < vecinos; j++){
@@ -314,18 +331,17 @@ double combinaciones(int elegido, int inicio, int vecinos, int nivel, vector< do
 	return p;
 }
 
-/* Cálculo de la acción que toma una célula en una fase de tiempo, según las probabilidades que se le pasan
-	@param alpha: Probabilidad de morir
-	@param migrar: Probabilidad de migrar
-	@param pd: Probabilidad de reproducción
-	@return: Valor entero del 1 al 3, indicando una de las 3 posibles acciones que toma una célula
+/* Cálculo de la probabilidad de que los vecinos de la celula migren o se reproduzcan donde la célula se encuentra
+	@param cell: Célula en la posición que estamos calculando
+	@return: Vector con los valores de las probabilidades de los vecinos de migrar o reproducirse en el sitio de la célula
 */
 vector <double> calculoProbabilidadVecinos(Celula &cell){
 	
-	vector< double > probabilidad_v;
-	vector< double > probabilidad_f;
+	vector< double > probabilidad_v; //Vector donde se van a guardar las probabilidades de los vecinos
+	vector< double > probabilidad_f; //Vector final con las probabilidades múltiplicadas
+	
 	for( int i = 0 ; i < 8; i++){
-		if( cell.vecinos[i] != NULL ){
+		if( cell.vecinos[i] != NULL ){ 
 			probabilidad_v.push_back( (cell.vecinos[i]->P_migra + cell.vecinos[i]->P_repro) / (8.0 - cell.vecinos[i]->n_vecinos) );
 		}
 	}
@@ -337,7 +353,6 @@ vector <double> calculoProbabilidadVecinos(Celula &cell){
 	
 	return probabilidad_f;
 }
-
 
 /* Simulación durante 50 días, con 24 pasos por día del crecimiento de un tumor en un grid.
 	@param matriz: Vector con todas las posibles coordenadas que tiene el grid
@@ -370,28 +385,32 @@ int simulacion_cancer(vector < vector< vector <Celula> > > &rejillas){
 	auto extra = duration_cast<chrono::milliseconds>(fin_extra - fin_extra);
 	int time = 0;
 	
-	
-
 	//Durante 50 días
 	for( int dia = 1; dia < NUM_DIAS; dia++){
 		//En cada día 24 pasos
 		for (int paso = 0; paso < pasos; paso++){
+			//Actualizamos el indice de rejillas
 			indice_rejilla = paso%2;
+			//Primero se actualizan todas las células madres
 			for (int madre = 0; madre < celulas_madre.size(); madre++){
+				//Guardamos la célula actual y vemos si tiene vecinos
 				cell = rejillas[indice_rejilla][celulas_madre[madre].x][celulas_madre[madre].y];
 				cas_libres = casillas_libres( celulas_madre[madre].x, celulas_madre[madre].y, rejillas[indice_rejilla]);
-				p_obtenida = Random::get(0.0, 1.0);
 				if( cas_libres.size() != 0){
+					//Si hay huecos alrededor, se calcula la probabilidad y a que vecino se va a realizar la acción
+					p_obtenida = Random::get(0.0, 1.0);
 					vecino = Random::get(0, int(cas_libres.size()-1));
 					
-					if( p_obtenida < cell.P_migra ){
+					if( p_obtenida < cell.P_migra ){ //Si migra
+						//Se introduce la célula en el vecino libre
 						coor = introducir_en_casilla( celulas_madre[madre].x, celulas_madre[madre].y, cas_libres[vecino], cell, rejillas[indice_rejilla]);
 						futuras.push_back(coor);
+						//Se limpia la casilla actual
 						rejillas[indice_rejilla][celulas_madre[madre].x][celulas_madre[madre].y] = new Celula();
 						
-					}else{
+					}else{ //Si se reproduce
 						futuras.push_back(celulas_madre[madre]);	
-						if( Random::get(0.0, 1.0) < PS){
+						if( Random::get(0.0, 1.0) < PS){//Se comprueba si va a ser copia o hijo normal
 							coor = introducir_en_casilla( celulas_madre[madre].x, celulas_madre[madre].y, cas_libres[vecino], cell, rejillas[indice_rejilla]);
 							futuras.push_back( coor );
 							contador ++;
@@ -412,50 +431,50 @@ int simulacion_cancer(vector < vector< vector <Celula> > > &rejillas){
 				} else {
 					futuras.push_back(celulas_madre[madre]);
 				}
-			}
+			} //Se actualiza el vector de celulas madre
 			celulas_madre = futuras;
 			futuras.clear();
 			
-			for(int x = min_x; x <= max_x ; x++){ // Cálculo de vecinos
+			for(int x = min_x; x <= max_x ; x++){ // Se actualizan los vecinos de cada célula
 				for(int y = min_y; y <= max_y; y++){
 					rejillas[indice_rejilla][x][y].actualizarVecinos(x, y, rejillas[indice_rejilla]);
 				}
 			}
 			
-			for(int x = min_x; x <= max_x ; x++){ // Cálculo de función de transición
+			for(int x = min_x; x <= max_x ; x++){ // Cálculo de función de transición de las células normales
 				for(int y = min_y; y <= max_y; y++){	
 					//Vemos que casilla vamos a acceder
-					
-					cell = rejillas[indice_rejilla][x][y]; //Y guardamos la célula en esa coordenada
+					cell = rejillas[indice_rejilla][x][y];
 					
 					if( cell.cancer ){ //Si la célula es cancerígena
-						if( cell.ro < 11 ){ //Células madre se tratan al final, en serie
+						if( cell.ro < 11 ){ //Si no es célula madre
 							if( cell.n_vecinos > 0 ){ //Si tiene casillas libres alrededor
 								if( cell.n_vecinos == 8){ // P=1 Quiescencia, se mantiene igual
 									rejillas[(indice_rejilla+1)%2][x][y] = cell;
 								} else {
-									//Se cálcula las probabilidades de la célula de cada acción según sus parametros
+									//Se cálcula las probabilidades de cada vecino
 									p_auxiliar = 0.0;
 									p_vecinos = calculoProbabilidadVecinos(cell);	
 									for( int vec = 0; vec < p_vecinos.size(); vec ++){
 										p_auxiliar += p_vecinos[vec]; }
 									
-									p_acumulada = cell.P_repro + (1-cell.P_repro)*p_auxiliar;			
-																
+									//Se calcula la probabilidad total de la posición de que haya una célula en la iteración siguiente
+									p_acumulada = cell.P_repro + (1-cell.P_repro)*p_auxiliar;
 									p_obtenida = Random::get(0.0, 1.0);
-									if( p_obtenida < cell.P_repro ){
+									
+									if( p_obtenida < cell.P_repro ){ //Si la célula actual se reproduce
 										cell.decreaseRo();
 										rejillas[(indice_rejilla+1)%2][x][y] = cell;
-									} else if( p_obtenida < p_acumulada ){
+									} else if( p_obtenida < p_acumulada ){ //Si otra célula ocupa este sitio
 										
 										p_auxiliar = cell.P_repro;
-										for(int vec = 0; vec < p_vecinos.size(); vec++){
+										for(int vec = 0; vec < p_vecinos.size(); vec++){ //Vemos que vecino ocupa este sitio
 											p_auxiliar += (1-cell.P_repro)*p_vecinos[vec];
 											if( p_obtenida < p_auxiliar ){
 												vecino = vec;
-												break;
+												vec = p_vecinos.size();
 											}
-											}
+										} //Copiamos la célula 
 										for(int indice_vecinos = 0; indice_vecinos < 8; indice_vecinos ++){
 											if( cell.vecinos[indice_vecinos] != NULL && vecino == 0){
 												rejillas[(indice_rejilla+1)%2][x][y] = *cell.vecinos[indice_vecinos];
@@ -494,23 +513,23 @@ int simulacion_cancer(vector < vector< vector <Celula> > > &rejillas){
 						}
 					} else { // Si es célula no cancerígena		
 						if( cell.n_vecinos > 0 ){ //Si tiene celulas cancerígenas alrededor
-							
+							//Se cálcula las probabilidades de cada vecino
 							p_auxiliar = 0.0;
 							p_vecinos = calculoProbabilidadVecinos(cell);	
 							for( int vec = 0; vec < p_vecinos.size(); vec ++){
 								p_auxiliar += p_vecinos[vec];  }
-							
+							//Se calcula la probabilidad total de la posición de que haya una célula en la iteración siguiente
 							p_acumulada = p_auxiliar;
 							p_obtenida = Random::get(0.0, 1.0);
-							if( p_obtenida < p_acumulada ){	
+							if( p_obtenida < p_acumulada ){//Si otra célula ocupa este sitio
 								p_auxiliar = 0.0;
-								for(int vec = 0; vec < p_vecinos.size(); vec++){
+								for(int vec = 0; vec < p_vecinos.size(); vec++){//Vemos que vecino ocupa este sitio
 									p_auxiliar += p_vecinos[vec];
 									if( p_obtenida < p_auxiliar ){
 										vecino = vec;
 										vec = p_vecinos.size();
 									}
-								}
+								} //Copiamos la célula 
 								for(int indice_vecinos = 0; indice_vecinos < 8; indice_vecinos ++){
 									if( cell.vecinos[indice_vecinos] != NULL && vecino == 0){
 										nueva_cell = new Celula(*cell.vecinos[indice_vecinos]);
@@ -620,4 +639,3 @@ int main(){
 	
 	return 0;
 }
-

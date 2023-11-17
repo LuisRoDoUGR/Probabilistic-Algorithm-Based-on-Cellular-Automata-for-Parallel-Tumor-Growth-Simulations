@@ -9,9 +9,15 @@ for fichero in directorio:
 		long = file1.readline()
 		nueva_rejilla = np.zeros(( int(long), int(long) ))
 		for line in file1:
-			nueva_rejilla[ int(line.split()[0]) ][ int(line.split()[1]) ] = 1
+			nueva_rejilla[ int(line.split()[0]) ][ int(line.split()[1]) ] = (1 + int(line.split()[2]))+1
+			
 
-	plt.imshow(nueva_rejilla, vmin = 0, vmax = 1, cmap="Greys")
+	plt.imshow(nueva_rejilla, vmin = 0, vmax = 12, cmap="viridis")
 	plt.xlabel('Eje X')
 	plt.ylabel('Eje Y')
 	plt.savefig('IMAGES'+fichero[6:-3]+'png')
+	
+	plt.imshow(nueva_rejilla, vmin = 0, vmax = 1, cmap="Greys")
+	plt.xlabel('Eje X')
+	plt.ylabel('Eje Y')
+	plt.savefig('IMAGES'+fichero[6:-4]+'byw.png')
