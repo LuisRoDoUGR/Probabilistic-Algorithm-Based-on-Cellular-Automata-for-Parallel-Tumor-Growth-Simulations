@@ -1,5 +1,5 @@
 ct: 
-	g++ -std=c++11 *.cpp -o BIN/ct
+	g++ -std=c++11 SOURCES/*.cpp -o BIN/ct
 	
 rm:
 	rm -f TABLES/*
@@ -7,7 +7,7 @@ rm:
 	
 run: ct rm
 	./BIN/ct
-	python3 grafiquear.py
+	python3 SOURCES/grafiquear.py
 	
 clean:
 	rm -f BIN/*
