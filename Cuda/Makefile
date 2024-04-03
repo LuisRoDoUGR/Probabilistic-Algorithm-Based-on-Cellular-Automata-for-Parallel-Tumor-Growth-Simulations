@@ -9,6 +9,7 @@ rm:
 	rm -f TABLES/*	
 	rm -f IMAGES/*	
 	rm -f OUTPUT/*
+	rm -f TIMES/*
 	
 run: ct rm
 	./BIN/ct

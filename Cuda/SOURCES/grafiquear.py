@@ -23,3 +23,21 @@ for fichero in directorio:
 	plt.xlabel('Eje X')
 	plt.ylabel('Eje Y')
 	plt.savefig('IMAGES'+fichero[6:-4]+'byw.png')
+	
+
+
+directorio = glob("TIMES/*")
+celulas = np.zeros([1], dtype=int)
+tiempos = np.zeros([1], dtype=int)
+for fichero in directorio: 
+	with open(fichero, "r+") as file1:
+		for line in file1:
+			celulas = np.append( celulas, int(line.split()[0]) )
+			tiempos = np.append( tiempos, int(line.split()[1]) )
+			
+plt.plot(celulas, tiempos, 'bo')
+plt.title('Tiempos')
+plt.xlabel('Nº Celulas')
+plt.ylabel('Tiempo (ms)')
+plt.savefig('IMAGES/tiempos.png')
+
