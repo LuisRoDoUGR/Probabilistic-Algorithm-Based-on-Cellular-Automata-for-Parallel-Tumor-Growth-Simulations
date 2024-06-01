@@ -283,7 +283,7 @@ __device__ double combinaciones(int elegido, int inicio, int vecinos, int nivel,
 	double p = 0;
 	for( int j = inicio; j < vecinos; j++){
 		if( j != elegido)
-			p += (1-probabilidad_v[j])*( FACTORIAL[vecinos - 1 - nivel]*FACTORIAL[nivel] + combinaciones(elegido, j+1, vecinos, nivel+1, probabilidad_v) );
+			p += (1-probabilidad_v[j])*( 1/(FACTORIAL[vecinos - 1 - nivel]*FACTORIAL[nivel]) + combinaciones(elegido, j+1, vecinos, nivel+1, probabilidad_v) );
 	}
 	return p;
 }
